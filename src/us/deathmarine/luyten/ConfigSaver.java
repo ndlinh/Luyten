@@ -32,14 +32,14 @@ public class ConfigSaver {
 	private WindowPosition mainWindowPosition;
 	private WindowPosition findWindowPosition;
 	private LuytenPreferences luytenPreferences;
-	private boolean isUnicodeReplaceEnabled;
 
 	private static ConfigSaver theLoadedInstance;
 
 	/**
 	 * Do not instantiate, get the loaded instance
 	 */
-	private ConfigSaver() {}
+	private ConfigSaver() {
+	}
 
 	public static ConfigSaver getLoadedInstance() {
 		if (theLoadedInstance == null) {
@@ -58,41 +58,41 @@ public class ConfigSaver {
 	 */
 	private void loadConfig() {
 		decompilerSettings = new DecompilerSettings();
-		if (decompilerSettings.getFormattingOptions() == null) {
-			decompilerSettings.setFormattingOptions(JavaFormattingOptions.createDefault());
+		if (decompilerSettings.getJavaFormattingOptions() == null) {
+			decompilerSettings.setJavaFormattingOptions(JavaFormattingOptions.createDefault());
 		}
 		luytenPreferences = new LuytenPreferences();
 		mainWindowPosition = new WindowPosition();
 		findWindowPosition = new WindowPosition();
 		try {
 			Preferences prefs = Preferences.userNodeForPackage(ConfigSaver.class);
-			if(!prefs.get(LANGUAGE_NAME_ID, decompilerSettings.getLanguage().getName()).equals(
-					decompilerSettings.getLanguage().getName()))
+			if (!prefs.get(LANGUAGE_NAME_ID, decompilerSettings.getLanguage().getName())
+					.equals(decompilerSettings.getLanguage().getName()))
 				prefs.put(LANGUAGE_NAME_ID, decompilerSettings.getLanguage().getName());
 
-			decompilerSettings.setFlattenSwitchBlocks(prefs.getBoolean(FLATTEN_SWITCH_BLOCKS_ID,
-					decompilerSettings.getFlattenSwitchBlocks()));
-			decompilerSettings.setForceExplicitImports(prefs.getBoolean(FORCE_EXPLICIT_IMPORTS_ID,
-					decompilerSettings.getForceExplicitImports()));
-			decompilerSettings.setShowSyntheticMembers(prefs.getBoolean(SHOW_SYNTHETIC_MEMBERS_ID,
-					decompilerSettings.getShowSyntheticMembers()));
-			decompilerSettings.setExcludeNestedTypes(prefs.getBoolean(EXCLUDE_NESTED_TYPES_ID,
-					decompilerSettings.getExcludeNestedTypes()));
+			decompilerSettings.setFlattenSwitchBlocks(
+					prefs.getBoolean(FLATTEN_SWITCH_BLOCKS_ID, decompilerSettings.getFlattenSwitchBlocks()));
+			decompilerSettings.setForceExplicitImports(
+					prefs.getBoolean(FORCE_EXPLICIT_IMPORTS_ID, decompilerSettings.getForceExplicitImports()));
+			decompilerSettings.setShowSyntheticMembers(
+					prefs.getBoolean(SHOW_SYNTHETIC_MEMBERS_ID, decompilerSettings.getShowSyntheticMembers()));
+			decompilerSettings.setExcludeNestedTypes(
+					prefs.getBoolean(EXCLUDE_NESTED_TYPES_ID, decompilerSettings.getExcludeNestedTypes()));
 			decompilerSettings.setForceExplicitTypeArguments(prefs.getBoolean(FORCE_EXPLICIT_TYPE_ARGUMENTS_ID,
 					decompilerSettings.getForceExplicitTypeArguments()));
-			decompilerSettings.setRetainRedundantCasts(prefs.getBoolean(RETAIN_REDUNDANT_CASTS_ID,
-					decompilerSettings.getRetainRedundantCasts()));
-			decompilerSettings.setIncludeErrorDiagnostics(prefs.getBoolean(INCLUDE_ERROR_DIAGNOSTICS_ID,
-					decompilerSettings.getIncludeErrorDiagnostics()));
-			decompilerSettings.setLanguage(findLanguageByName(prefs.get(LANGUAGE_NAME_ID,
-					decompilerSettings.getLanguage().getName())));
-			isUnicodeReplaceEnabled = prefs.getBoolean(UNICODE_REPLACE_ENABLED_ID, false);
+			decompilerSettings.setRetainRedundantCasts(
+					prefs.getBoolean(RETAIN_REDUNDANT_CASTS_ID, decompilerSettings.getRetainRedundantCasts()));
+			decompilerSettings.setIncludeErrorDiagnostics(
+					prefs.getBoolean(INCLUDE_ERROR_DIAGNOSTICS_ID, decompilerSettings.getIncludeErrorDiagnostics()));
+			decompilerSettings.setLanguage(
+					findLanguageByName(prefs.get(LANGUAGE_NAME_ID, decompilerSettings.getLanguage().getName())));
+			decompilerSettings.setUnicodeOutputEnabled(prefs.getBoolean(UNICODE_REPLACE_ENABLED_ID, false));
 
 			mainWindowPosition = loadWindowPosition(prefs, MAIN_WINDOW_ID_PREFIX);
 			findWindowPosition = loadWindowPosition(prefs, FIND_WINDOW_ID_PREFIX);
 			luytenPreferences = loadLuytenPreferences(prefs);
 		} catch (Exception e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
@@ -134,7 +134,7 @@ public class ConfigSaver {
 
 	public void saveConfig() {
 		// Registry path on Windows Xp:
-		// HKEY_CURRENT_USER\Software\JavaSoft\Prefs\com\modcrafting\luyten
+		// HKEY_CURRENT_USER/Software/JavaSoft/Prefs/us/deathmarine/luyten
 		try {
 			Preferences prefs = Preferences.userNodeForPackage(ConfigSaver.class);
 
@@ -145,14 +145,14 @@ public class ConfigSaver {
 			prefs.putBoolean(FORCE_EXPLICIT_TYPE_ARGUMENTS_ID, decompilerSettings.getForceExplicitTypeArguments());
 			prefs.putBoolean(RETAIN_REDUNDANT_CASTS_ID, decompilerSettings.getRetainRedundantCasts());
 			prefs.putBoolean(INCLUDE_ERROR_DIAGNOSTICS_ID, decompilerSettings.getIncludeErrorDiagnostics());
-			prefs.putBoolean(UNICODE_REPLACE_ENABLED_ID, isUnicodeReplaceEnabled);
+			prefs.putBoolean(UNICODE_REPLACE_ENABLED_ID, decompilerSettings.isUnicodeOutputEnabled());
 			prefs.put(LANGUAGE_NAME_ID, decompilerSettings.getLanguage().getName());
 
 			saveWindowPosition(prefs, MAIN_WINDOW_ID_PREFIX, mainWindowPosition);
 			saveWindowPosition(prefs, FIND_WINDOW_ID_PREFIX, findWindowPosition);
 			saveLuytenPreferences(prefs);
 		} catch (Exception e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
@@ -209,14 +209,6 @@ public class ConfigSaver {
 		return decompilerSettings;
 	}
 
-	public boolean isUnicodeReplaceEnabled(){
-		return isUnicodeReplaceEnabled;
-	}
-
-	public void setUnicodeReplaceEnabled(boolean value){
-		isUnicodeReplaceEnabled = value;
-	}
-
 	public WindowPosition getMainWindowPosition() {
 		return mainWindowPosition;
 	}
@@ -224,7 +216,7 @@ public class ConfigSaver {
 	public WindowPosition getFindWindowPosition() {
 		return findWindowPosition;
 	}
-	
+
 	public LuytenPreferences getLuytenPreferences() {
 		return luytenPreferences;
 	}

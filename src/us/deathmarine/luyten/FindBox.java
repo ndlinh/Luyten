@@ -3,6 +3,7 @@ package us.deathmarine.luyten;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -26,24 +27,26 @@ import org.fife.ui.rtextarea.SearchEngine;
 public class FindBox extends JDialog {
 	private static final long serialVersionUID = -4125409760166690462L;
 
-	private JCheckBox mcase;
-	private JCheckBox regex;
-	private JCheckBox wholew;
-	private JCheckBox reverse;
+	JCheckBox mcase;
+	JCheckBox regex;
+	JCheckBox wholew;
+	JCheckBox reverse;
+	JCheckBox wrap;
 	private JButton findButton;
-	private JTextField textField;
+	JTextField textField;
 	private MainWindow mainWindow;
 
 	public void showFindBox() {
 		this.setVisible(true);
 		this.textField.requestFocus();
+		this.textField.selectAll();
 	}
 
 	public void hideFindBox() {
 		this.setVisible(false);
 	}
 
-	public FindBox(MainWindow mainWindow) {
+	public FindBox(final MainWindow mainWindow) {
 		this.mainWindow = mainWindow;
 		this.setDefaultCloseOperation(HIDE_ON_CLOSE);
 		this.setHideOnEscapeButton();
@@ -59,15 +62,25 @@ public class FindBox extends JDialog {
 		regex = new JCheckBox("Regex");
 		wholew = new JCheckBox("Whole Words");
 		reverse = new JCheckBox("Search Backwards");
+		wrap = new JCheckBox("Wrap");
 
 		findButton = new JButton("Find");
 		findButton.addActionListener(new FindButton());
 		this.getRootPane().setDefaultButton(findButton);
 
+		KeyStroke funcF3 = KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0, false);
+		this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(funcF3, "FindNext");
+		this.getRootPane().getActionMap().put("FindNext", new FindExploreAction(true));
+
+		KeyStroke sfuncF3 = KeyStroke.getKeyStroke(KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK, false);
+		this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(sfuncF3, "FindPrevious");
+		this.getRootPane().getActionMap().put("FindPrevious", new FindExploreAction(false));
+
 		mcase.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 		regex.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 		wholew.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 		reverse.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+		wrap.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		final Dimension center = new Dimension((int) (screenSize.width * 0.35),
@@ -82,36 +95,26 @@ public class FindBox extends JDialog {
 		layout.setAutoCreateGaps(true);
 		layout.setAutoCreateContainerGaps(true);
 
-		layout.setHorizontalGroup(layout.createSequentialGroup()
-				.addComponent(label)
-				.addGroup(layout.createParallelGroup(Alignment.LEADING)
-						.addComponent(textField)
+		layout.setHorizontalGroup(layout.createSequentialGroup().addComponent(label)
+				.addGroup(layout.createParallelGroup(Alignment.LEADING).addComponent(textField)
 						.addGroup(layout.createSequentialGroup()
-								.addGroup(layout.createParallelGroup(Alignment.LEADING)
-										.addComponent(mcase)
-										.addComponent(wholew))
-								.addGroup(layout.createParallelGroup(Alignment.LEADING)
-										.addComponent(regex)
-										.addComponent(reverse))))
-				.addGroup(layout.createParallelGroup(Alignment.LEADING)
-						.addComponent(findButton))
-				);
+								.addGroup(layout.createParallelGroup(Alignment.LEADING).addComponent(mcase)
+										.addComponent(wholew).addComponent(wrap))
+						.addGroup(layout.createParallelGroup(Alignment.LEADING).addComponent(regex)
+								.addComponent(reverse))))
+				.addGroup(layout.createParallelGroup(Alignment.LEADING).addComponent(findButton)));
 
 		layout.linkSize(SwingConstants.HORIZONTAL, findButton);
 		layout.setVerticalGroup(layout.createSequentialGroup()
-				.addGroup(layout.createParallelGroup(Alignment.BASELINE)
-						.addComponent(label)
-						.addComponent(textField)
+				.addGroup(layout.createParallelGroup(Alignment.BASELINE).addComponent(label).addComponent(textField)
 						.addComponent(findButton))
 				.addGroup(layout.createParallelGroup(Alignment.LEADING)
 						.addGroup(layout.createSequentialGroup()
-								.addGroup(layout.createParallelGroup(Alignment.BASELINE)
-										.addComponent(mcase)
+								.addGroup(layout.createParallelGroup(Alignment.BASELINE).addComponent(mcase)
 										.addComponent(regex))
-								.addGroup(layout.createParallelGroup(Alignment.BASELINE)
-										.addComponent(wholew)
-										.addComponent(reverse))))
-				);
+								.addGroup(layout.createParallelGroup(Alignment.BASELINE).addComponent(wholew)
+										.addComponent(reverse))
+								.addGroup(layout.createParallelGroup(Alignment.BASELINE).addComponent(wrap)))));
 
 		this.adjustWindowPositionBySavedState();
 		this.setSaveWindowPositionOnClosing();
@@ -141,8 +144,12 @@ public class FindBox extends JDialog {
 			context.setWholeWord(wholew.isSelected());
 
 			if (!SearchEngine.find(pane, context).wasFound()) {
-				pane.setSelectionStart(0);
-				pane.setSelectionEnd(0);
+				if (wrap.isSelected()) {
+					pane.setSelectionStart(0);
+					pane.setSelectionEnd(0);
+				} else {
+					mainWindow.getLabel().setText("Search Complete");
+				}
 			}
 		}
 
@@ -150,7 +157,7 @@ public class FindBox extends JDialog {
 
 	private void setHideOnEscapeButton() {
 		Action escapeAction = new AbstractAction() {
-			private static final long serialVersionUID = 1L;
+			private static final long serialVersionUID = 5572504000935312338L;
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -179,5 +186,47 @@ public class FindBox extends JDialog {
 				windowPosition.readPositionFromDialog(FindBox.this);
 			}
 		});
+	}
+
+	public void fireExploreAction(boolean direction) {
+		new FindExploreAction(direction).actionPerformed(null);
+	}
+
+	class FindExploreAction extends AbstractAction {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -4391670062679240573L;
+		boolean direction;
+
+		public FindExploreAction(boolean forward) {
+			direction = forward;
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (textField.getText().length() == 0)
+				return;
+			RSyntaxTextArea pane = mainWindow.getModel().getCurrentTextArea();
+			if (pane == null)
+				return;
+			SearchContext context = new SearchContext();
+			context.setSearchFor(textField.getText());
+			context.setMatchCase(mcase.isSelected());
+			context.setRegularExpression(regex.isSelected());
+			context.setSearchForward(direction);
+			context.setWholeWord(wholew.isSelected());
+
+			if (!SearchEngine.find(pane, context).wasFound()) {
+				if (wrap.isSelected()) {
+					pane.setSelectionStart(0);
+					pane.setSelectionEnd(0);
+				} else {
+					mainWindow.getLabel().setText("Search Complete");
+				}
+			}
+
+		}
+
 	}
 }

@@ -15,6 +15,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Iterator;
+import java.util.Vector;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -34,26 +36,28 @@ import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
  * Dispatcher
  */
 public class MainWindow extends JFrame {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 5265556630724988013L;
+
 	private static final String TITLE = "Luyten";
 
 	public static Model model;
 	private JProgressBar bar;
 	private JLabel label;
-	private FindBox findBox;
+	FindBox findBox;
 	private FindAllBox findAllBox;
 	private ConfigSaver configSaver;
 	private WindowPosition windowPosition;
 	private LuytenPreferences luytenPrefs;
 	private FileDialog fileDialog;
 	private FileSaver fileSaver;
+	public MainMenuBar mainMenuBar;
 
 	public MainWindow(File fileFromCommandLine) {
 		configSaver = ConfigSaver.getLoadedInstance();
 		windowPosition = configSaver.getMainWindowPosition();
 		luytenPrefs = configSaver.getLuytenPreferences();
-
-		MainMenuBar mainMenuBar = new MainMenuBar(this);
+		
+		mainMenuBar = new MainMenuBar(this);
 		this.setJMenuBar(mainMenuBar);
 
 		this.adjustWindowPositionBySavedState();
@@ -61,37 +65,32 @@ public class MainWindow extends JFrame {
 		this.setShowFindAllBoxOnMainWindowFocus();
 		this.setQuitOnWindowClosing();
 		this.setTitle(TITLE);
-        this.setIconImage(new ImageIcon(Toolkit.getDefaultToolkit().getImage(this.getClass().getResource("/resources/Luyten.png"))).getImage());
+		this.setIconImage(new ImageIcon(
+				Toolkit.getDefaultToolkit().getImage(this.getClass().getResource("/resources/Luyten.png"))).getImage());
 
-		// JPanel pane = new JPanel();
 		JPanel panel1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		label = new JLabel();
 		label.setHorizontalAlignment(JLabel.LEFT);
-		// panel1.setLayout(new BoxLayout(panel1, BoxLayout.X_AXIS));
 		panel1.setBorder(new BevelBorder(BevelBorder.LOWERED));
 		panel1.setPreferredSize(new Dimension(this.getWidth() / 2, 20));
 		panel1.add(label);
-		// pane.add(panel1);
 
 		JPanel panel2 = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		bar = new JProgressBar();
-		// bar.setIndeterminate(true);
 
 		bar.setStringPainted(true);
 		bar.setOpaque(false);
 		bar.setVisible(false);
-		// panel2.setLayout(new BoxLayout(panel1, BoxLayout.X_AXIS));
 		panel2.setPreferredSize(new Dimension(this.getWidth() / 3, 20));
 		panel2.add(bar);
-		// pane.add(panel1);
 
 		model = new Model(this);
 		this.getContentPane().add(model);
 
-		JSplitPane spt = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, panel1,
-				panel2) {
+		JSplitPane spt = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, panel1, panel2) {
 			private static final long serialVersionUID = 2189946972124687305L;
 			private final int location = 400;
+
 			{
 				setDividerLocation(location);
 			}
@@ -108,10 +107,7 @@ public class MainWindow extends JFrame {
 		};
 		spt.setBorder(new BevelBorder(BevelBorder.LOWERED));
 		spt.setPreferredSize(new Dimension(this.getWidth(), 24));
-
-		// spt.setLayout(new BoxLayout(pane, BoxLayout.X_AXIS));
 		this.add(spt, BorderLayout.SOUTH);
-
 		if (fileFromCommandLine != null) {
 			model.loadFile(fileFromCommandLine);
 		}
@@ -121,7 +117,7 @@ public class MainWindow extends JFrame {
 			dt.addDropTargetListener(new DropListener(this));
 			this.setDropTarget(dt);
 		} catch (Exception e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 
 		fileDialog = new FileDialog(this);
@@ -129,16 +125,19 @@ public class MainWindow extends JFrame {
 
 		this.setExitOnEscWhenEnabled(model);
 
-		if (fileFromCommandLine == null
-				|| fileFromCommandLine.getName().toLowerCase().endsWith(".jar")
+		if (fileFromCommandLine == null || fileFromCommandLine.getName().toLowerCase().endsWith(".jar")
 				|| fileFromCommandLine.getName().toLowerCase().endsWith(".zip")) {
 			model.startWarmUpThread();
 		}
+		
+		if(RecentFiles.load() > 0) mainMenuBar.updateRecentFiles();
 	}
 
 	public void onOpenFileMenu() {
 		File selectedFile = fileDialog.doOpenDialog();
 		if (selectedFile != null) {
+			System.out.println("[Open]: Opening " + selectedFile.getAbsolutePath());
+			
 			this.getModel().loadFile(selectedFile);
 		}
 	}
@@ -171,8 +170,7 @@ public class MainWindow extends JFrame {
 		if (fileName.endsWith(".class")) {
 			fileName = fileName.replace(".class", ".java");
 		} else if (fileName.toLowerCase().endsWith(".jar")) {
-			fileName = "decompiled-"
-					+ fileName.replaceAll("\\.[jJ][aA][rR]", ".zip");
+			fileName = "decompiled-" + fileName.replaceAll("\\.[jJ][aA][rR]", ".zip");
 		} else {
 			fileName = "saved-" + fileName;
 		}
@@ -196,7 +194,7 @@ public class MainWindow extends JFrame {
 				pane.setSelectionEnd(pane.getText().length());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
@@ -209,18 +207,18 @@ public class MainWindow extends JFrame {
 				findBox.showFindBox();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
 	public void onFindAllMenu() {
 		try {
 			if (findAllBox == null)
-				findAllBox = new FindAllBox();
+				findAllBox = new FindAllBox(this);
 			findAllBox.showFindBox();
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
@@ -240,29 +238,65 @@ public class MainWindow extends JFrame {
 		}.start();
 	}
 
+	public void onListLoadedClasses() {
+		try {
+			StringBuilder sb = new StringBuilder();
+			ClassLoader myCL = Thread.currentThread().getContextClassLoader();
+			bar.setVisible(true);
+			bar.setIndeterminate(true);
+			while (myCL != null) {
+				sb.append("ClassLoader: " + myCL + "\n");
+				for (Iterator<?> iter = list(myCL); iter.hasNext();) {
+					sb.append("\t" + iter.next() + "\n");
+				}
+				myCL = myCL.getParent();
+			}
+			MainWindow.this.getModel().show("Debug", sb.toString());
+		} finally {
+			bar.setIndeterminate(false);
+			bar.setVisible(false);
+		}
+	}
+
+	private static Iterator<?> list(ClassLoader CL) {
+		Class<?> CL_class = CL.getClass();
+		while (CL_class != java.lang.ClassLoader.class) {
+			CL_class = CL_class.getSuperclass();
+		}
+		java.lang.reflect.Field ClassLoader_classes_field;
+		try {
+			ClassLoader_classes_field = CL_class.getDeclaredField("classes");
+			ClassLoader_classes_field.setAccessible(true);
+			Vector<?> classes = (Vector<?>) ClassLoader_classes_field.get(CL);
+			return classes.iterator();
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			Luyten.showExceptionDialog("Exception!", e);
+		}
+		return null;
+	}
+
 	private String getLegalStr() {
 		StringBuilder sb = new StringBuilder();
 		try {
-			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					getClass().getResourceAsStream(
-							"/distfiles/Procyon.License.txt")));
+			BufferedReader reader = new BufferedReader(
+					new InputStreamReader(getClass().getResourceAsStream("/distfiles/Procyon.License.txt")));
 			String line;
 			while ((line = reader.readLine()) != null)
 				sb.append(line).append("\n");
 			sb.append("\n\n\n\n\n");
-			reader = new BufferedReader(new InputStreamReader(getClass()
-					.getResourceAsStream(
-							"/distfiles/RSyntaxTextArea.License.txt")));
+			reader = new BufferedReader(
+					new InputStreamReader(getClass().getResourceAsStream("/distfiles/RSyntaxTextArea.License.txt")));
 			while ((line = reader.readLine()) != null)
 				sb.append(line).append("\n");
 		} catch (IOException e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 		return sb.toString();
 	}
 
 	public void onThemesChanged() {
 		this.getModel().changeTheme(luytenPrefs.getThemeXml());
+		luytenPrefs.setFont_size(this.getModel().getTheme().baseFont.getSize());
 	}
 
 	public void onSettingsChanged() {
@@ -287,16 +321,18 @@ public class MainWindow extends JFrame {
 				this.setTitle(TITLE);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Luyten.showExceptionDialog("Exception!", e);
 		}
+	}
+
+	public void onNavigationRequest(String uniqueStr) {
+		this.getModel().navigateTo(uniqueStr);
 	}
 
 	private void adjustWindowPositionBySavedState() {
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		if (!windowPosition.isSavedWindowPositionValid()) {
-			final Dimension center = new Dimension(
-					(int) (screenSize.width * 0.75),
-					(int) (screenSize.height * 0.75));
+			final Dimension center = new Dimension((int) (screenSize.width * 0.75), (int) (screenSize.height * 0.75));
 			final int x = (int) (center.width * 0.2);
 			final int y = (int) (center.height * 0.2);
 			this.setBounds(x, y, center.width, center.height);
@@ -314,11 +350,8 @@ public class MainWindow extends JFrame {
 					if (MainWindow.this.getExtendedState() != JFrame.MAXIMIZED_BOTH) {
 						windowPosition.setFullScreen(false);
 						if (windowPosition.isSavedWindowPositionValid()) {
-							MainWindow.this.setBounds(
-									windowPosition.getWindowX(),
-									windowPosition.getWindowY(),
-									windowPosition.getWindowWidth(),
-									windowPosition.getWindowHeight());
+							MainWindow.this.setBounds(windowPosition.getWindowX(), windowPosition.getWindowY(),
+									windowPosition.getWindowWidth(), windowPosition.getWindowHeight());
 						}
 						MainWindow.this.removeComponentListener(this);
 					}
@@ -326,9 +359,7 @@ public class MainWindow extends JFrame {
 			});
 
 		} else {
-			this.setBounds(windowPosition.getWindowX(),
-					windowPosition.getWindowY(),
-					windowPosition.getWindowWidth(),
+			this.setBounds(windowPosition.getWindowX(), windowPosition.getWindowY(), windowPosition.getWindowWidth(),
 					windowPosition.getWindowHeight());
 		}
 	}
@@ -349,7 +380,7 @@ public class MainWindow extends JFrame {
 			@Override
 			public void windowGainedFocus(WindowEvent e) {
 				if (findAllBox != null && findAllBox.isVisible()) {
-					findAllBox.requestFocus();
+					findAllBox.setVisible(false);
 				}
 			}
 		});
@@ -368,8 +399,8 @@ public class MainWindow extends JFrame {
 		try {
 			windowPosition.readPositionFromWindow(this);
 			configSaver.saveConfig();
-		} catch (Exception exc) {
-			exc.printStackTrace();
+		} catch (Exception e) {
+			Luyten.showExceptionDialog("Exception!", e);
 		} finally {
 			try {
 				this.dispose();
@@ -381,7 +412,7 @@ public class MainWindow extends JFrame {
 
 	private void setExitOnEscWhenEnabled(JComponent mainComponent) {
 		Action escapeAction = new AbstractAction() {
-			private static final long serialVersionUID = 1L;
+			private static final long serialVersionUID = -3460391555954575248L;
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -390,12 +421,8 @@ public class MainWindow extends JFrame {
 				}
 			}
 		};
-
-		KeyStroke escapeKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE,
-				0, false);
-		mainComponent
-				.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
-				.put(escapeKeyStroke, "ESCAPE");
+		KeyStroke escapeKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, false);
+		mainComponent.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(escapeKeyStroke, "ESCAPE");
 		mainComponent.getActionMap().put("ESCAPE", escapeAction);
 	}
 

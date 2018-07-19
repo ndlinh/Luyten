@@ -23,9 +23,15 @@ public class FileDialog {
 
 		new Thread() {
 			public void run() {
-				initOpenDialog();
-				initSaveDialog();
-				initSaveAllDialog();
+				try {
+					initOpenDialog();
+					Thread.sleep(500);
+					initSaveAllDialog();
+					Thread.sleep(500);
+					initSaveDialog();
+				} catch (Exception e) {
+					Luyten.showExceptionDialog("Exception!", e);
+				}
 			};
 		}.start();
 	}
@@ -62,7 +68,7 @@ public class FileDialog {
 	public File doSaveAllDialog(String recommendedFileName) {
 		File selectedFile = null;
 		initSaveAllDialog();
-		
+
 		retrieveSaveDialogDir(fcSaveAll);
 		fcSaveAll.setSelectedFile(new File(recommendedFileName));
 		int returnVal = fcSaveAll.showSaveDialog(parent);
@@ -115,7 +121,7 @@ public class FileDialog {
 		@Override
 		public boolean accept(File f) {
 			if (f.isDirectory())
-				return false;
+				return true;
 			return f.getName().toLowerCase().endsWith(objType.substring(1));
 		}
 
@@ -134,8 +140,8 @@ public class FileDialog {
 					fc.setCurrentDirectory(currentDir);
 				}
 			}
-		} catch (Exception exc) {
-			exc.printStackTrace();
+		} catch (Exception e) {
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
@@ -145,8 +151,8 @@ public class FileDialog {
 			if (currentDir != null && currentDir.exists() && currentDir.isDirectory()) {
 				luytenPrefs.setFileOpenCurrentDirectory(currentDir.getAbsolutePath());
 			}
-		} catch (Exception exc) {
-			exc.printStackTrace();
+		} catch (Exception e) {
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
@@ -159,8 +165,8 @@ public class FileDialog {
 					fc.setCurrentDirectory(currentDir);
 				}
 			}
-		} catch (Exception exc) {
-			exc.printStackTrace();
+		} catch (Exception e) {
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 
@@ -170,8 +176,8 @@ public class FileDialog {
 			if (currentDir != null && currentDir.exists() && currentDir.isDirectory()) {
 				luytenPrefs.setFileSaveCurrentDirectory(currentDir.getAbsolutePath());
 			}
-		} catch (Exception exc) {
-			exc.printStackTrace();
+		} catch (Exception e) {
+			Luyten.showExceptionDialog("Exception!", e);
 		}
 	}
 }
